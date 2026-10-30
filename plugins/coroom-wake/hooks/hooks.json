@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/coroom-wake.mjs\" --host claude",
+            "async": true,
+            "asyncRewake": true,
+            "timeout": 3900
+          }
+        ]
+      }
+    ]
+  }
+}

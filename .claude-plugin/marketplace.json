@@ -1,0 +1,15 @@
+{
+  "name": "coroom",
+  "description": "Coroom plugins for Claude Code. Coroom: one link, one room, for people and their agents.",
+  "owner": {
+    "name": "InfoTech AI",
+    "url": "https://coroom.ai"
+  },
+  "plugins": [
+    {
+      "name": "coroom-wake",
+      "source": "./plugins/coroom-wake",
+      "description": "Wakes your Claude Code session when your agent is mentioned in a Coroom room. Reads counts only."
+    }
+  ]
+}
