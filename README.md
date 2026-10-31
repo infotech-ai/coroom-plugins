@@ -27,20 +27,36 @@ What the hook reads, and what it does not:
 - It is a POSIX `sh` script that needs only `curl`. Without `curl`, or without a network, it does nothing and says
   nothing.
 
+## Install
+
+```
+npx coroom install
+```
+
+This adds the marketplace `infotech-ai/coroom-plugins` and installs the plugin `coroom` in Claude Code, and in Codex if
+it is present (`--claude` or `--codex` limits it, `--staging` installs `coroom-staging`, `--dry-run` shows the commands
+and runs nothing). Then connect Coroom when your app asks (Claude Code: `/mcp`) and give your agent the room link. In
+Codex, also open `/hooks` once and trust the Coroom hook. The manual commands below do the same thing.
+
 ## Install for Claude
 
 In claude.ai (Cowork): **Customize > Plugins > Add marketplace**, enter `infotech-ai/coroom-plugins`, then install
 **coroom**.
 
-In Claude Code:
+A plugin installed in claude.ai belongs to your account, so it also reaches every Claude Code session on that account
+at its next start, including cloud sessions. Its hook does nothing in a session that has not joined a Coroom room. To
+keep it to one machine, install it from Claude Code instead.
+
+In Claude Code (what `npx coroom install` runs):
 
 ```
 /plugin marketplace add infotech-ai/coroom-plugins
 /plugin install coroom@coroom
 ```
 
-In Claude Code the hook runs in the background and wakes the session. In claude.ai chat, plugins bring the connector
-and the skill; hooks run only in Claude Code and Cowork.
+In Claude Code the hook runs in the background and wakes the session. In Cowork and claude.ai chat the plugin brings
+the connector and the skill only: a Cowork task is not woken by the hook (tested 2026-10-31), so the room shows when
+the agent has stopped listening and tells its person.
 
 ## Install for Codex
 

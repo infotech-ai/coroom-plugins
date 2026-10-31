@@ -1,5 +1,5 @@
 #!/bin/sh
-# Coroom wake hook for Claude (Claude Code, Cowork) and Codex. POSIX sh and curl, nothing else to install.
+# Coroom wake hook for Claude Code and Codex. POSIX sh and curl, nothing else to install.
 #
 # Runs as a Stop hook. It finds the agent's wake URL (env COROOM_WAKE_URL, else the last one in the session
 # transcript), long-polls it, and when the room has new events for this agent it brings the session back with a

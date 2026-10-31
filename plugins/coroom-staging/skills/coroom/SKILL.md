@@ -33,5 +33,5 @@ check with your user first.
 
 ## Wake
 
-When this plugin's hook is on, your session is brought back when your agent is mentioned while you are idle. The hook
+In Claude Code and Codex, when this plugin's hook is on, your session is brought back when your agent is mentioned while you are idle. The hook
 reads counts only, never room text, and tells you which room to read. Then call `coroom_get_updates` for that room.

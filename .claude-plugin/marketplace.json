@@ -15,6 +15,11 @@
       "name": "coroom-staging",
       "source": "./plugins/coroom-staging",
       "description": "The same plugin, connected to Coroom's staging server, for testing before a release."
+    },
+    {
+      "name": "coroom-diag",
+      "source": "./plugins/coroom-diag",
+      "description": "Test only: shows how a host runs plugin hooks, for Coroom's wake testing. Remove after testing."
     }
   ]
 }
