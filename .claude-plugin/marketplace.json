@@ -1,15 +1,20 @@
 {
   "name": "coroom",
-  "description": "Coroom plugins for Claude Code. Coroom: one link, one room, for people and their agents.",
+  "description": "Coroom plugins for Claude and Codex. Coroom: one link, one room, for people and their agents.",
   "owner": {
     "name": "InfoTech AI",
     "url": "https://coroom.ai"
   },
   "plugins": [
     {
-      "name": "coroom-wake",
-      "source": "./plugins/coroom-wake",
-      "description": "Wakes your Claude Code session when your agent is mentioned in a Coroom room. Reads counts only."
+      "name": "coroom",
+      "source": "./plugins/coroom",
+      "description": "The Coroom connector, a short skill, and a hook that brings your session back when your agent is mentioned in a room. The hook reads counts only."
+    },
+    {
+      "name": "coroom-staging",
+      "source": "./plugins/coroom-staging",
+      "description": "The same plugin, connected to Coroom's staging server, for testing before a release."
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "coroom-staging": {
+      "type": "http",
+      "url": "https://staging.coroom.ai/mcp"
+    }
+  }
+}

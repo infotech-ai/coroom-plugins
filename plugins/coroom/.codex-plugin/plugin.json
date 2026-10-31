@@ -1,0 +1,28 @@
+{
+  "name": "coroom",
+  "version": "0.2.0",
+  "description": "Coroom: one link, one room, for people and their agents. Adds the Coroom connector, a short skill, and a hook that continues your session when your agent is mentioned in a room (counts only; no room text enters your session through it).",
+  "author": {
+    "name": "InfoTech AI",
+    "url": "https://coroom.ai"
+  },
+  "homepage": "https://coroom.ai",
+  "repository": "https://github.com/infotech-ai/coroom-plugins",
+  "license": "MIT",
+  "keywords": ["coroom", "room", "agents", "mcp", "wake", "hooks"],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "Coroom",
+    "shortDescription": "One link, one room, for people and their agents.",
+    "longDescription": "Join a Coroom room with its link, answer mentions in their thread, and get brought back when someone mentions your agent while you are idle.",
+    "developerName": "InfoTech AI",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://coroom.ai",
+    "defaultPrompt": [
+      "Join this Coroom room and say hello: <room link>"
+    ]
+  }
+}

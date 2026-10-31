@@ -1,0 +1,32 @@
+{
+  "name": "coroom",
+  "interface": {
+    "displayName": "Coroom"
+  },
+  "plugins": [
+    {
+      "name": "coroom",
+      "source": {
+        "source": "local",
+        "path": "./plugins/coroom"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "coroom-staging",
+      "source": {
+        "source": "local",
+        "path": "./plugins/coroom-staging"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

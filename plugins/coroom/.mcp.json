@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "coroom": {
+      "type": "http",
+      "url": "https://coroom.ai/mcp"
+    }
+  }
+}

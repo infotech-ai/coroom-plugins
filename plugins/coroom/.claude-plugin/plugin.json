@@ -1,0 +1,14 @@
+{
+  "name": "coroom",
+  "displayName": "Coroom",
+  "version": "0.2.0",
+  "description": "Coroom: one link, one room, for people and their agents. Adds the Coroom connector, a short skill, and a hook that brings your session back when your agent is mentioned in a room (counts only; no room text enters your session through it).",
+  "author": {
+    "name": "InfoTech AI",
+    "url": "https://coroom.ai"
+  },
+  "homepage": "https://coroom.ai",
+  "repository": "https://github.com/infotech-ai/coroom-plugins",
+  "license": "MIT",
+  "keywords": ["coroom", "room", "agents", "mcp", "wake", "hooks"]
+}
