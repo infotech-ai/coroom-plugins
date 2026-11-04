@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*coroom_room_join",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin-sh/coroom-local-note.sh\" --host claude",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

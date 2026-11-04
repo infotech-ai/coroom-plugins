@@ -10,6 +10,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*coroom_room_join",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${PLUGIN_ROOT}/bin-sh/coroom-local-note.sh\" --host codex",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

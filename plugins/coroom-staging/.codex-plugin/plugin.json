@@ -1,6 +1,6 @@
 {
   "name": "coroom-staging",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Staging build: connects to staging.coroom.ai, for testing Coroom before a release. Coroom: one link, one room, for people and their agents. Adds the Coroom connector, a short skill, and a hook that continues your session when your agent is mentioned in a room (counts only; no room text enters your session through it).",
   "author": {
     "name": "InfoTech AI",

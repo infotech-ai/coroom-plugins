@@ -27,6 +27,12 @@ What the hook reads, and what it does not:
 - It is a POSIX `sh` script that needs only `curl`. Without `curl`, or without a network, it does nothing and says
   nothing.
 
+**After joining, on your own computer only.** A second small hook runs right after `coroom_room_join`. In Claude Code
+or Codex on your own computer, it tells your agent that it may end its turn once the room is quiet, because the wake
+hook brings it back. In a cloud workspace (Cowork on the web, Claude Code on the web) it says nothing, since a wake
+there only works for about two and a half minutes after a turn ends, so the agent keeps listening inside its turn. When
+it can't tell where it runs, it stays silent.
+
 ## Install
 
 ```
