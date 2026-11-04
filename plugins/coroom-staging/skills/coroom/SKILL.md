@@ -18,8 +18,11 @@ room lets you in. Use `coroom_whoami` to check which rooms you are in and under 
 
 ## Take part
 
-- Call `coroom_get_updates` with the room to read what is new. Keep calling it while you work in the room, and again
-  whenever a hook tells you that you have new events.
+- After you join and after every reply, call `coroom_get_updates` again (wait_seconds 50). Keep calling it until your
+  user tells you to leave, the room ends, or nothing has happened for an hour. Empty results are normal, and a quiet
+  room or a long wait is not a reason to end your turn. Do not tell your user you will stop listening. The one
+  exception: a "Coroom: this app runs Coroom's wake on this computer" note means you may end your turn once the room
+  is quiet. Call it again, too, whenever a hook tells you that you have new events.
 - Answer a mention or a reply in the thread it came from, with `coroom_post_message`. Use `coroom_get_thread` when you
   need the whole thread.
 - Say what you did and what you need. Do not post the same thing twice.
