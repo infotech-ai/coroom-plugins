@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // Builds plugins/coroom-staging from plugins/coroom, the one plugin edited by hand. The staging twin is the same plugin
-// with the staging connector (https://staging.coroom.ai/mcp) and its own name, so both can be installed side by side.
+// with the staging connector and its own name, so both can be installed side by side. Its Claude connector
+// (`.mcp.json`) points at the cards endpoint, https://staging.coroom.ai/mcp/apps, so the plugin can be tried as the only
+// Coroom install for Cowork and Claude Code (Dio, 2026-11-04, option a) before production's plugin moves there too;
+// its Codex connector (`mcp.json`) stays on https://staging.coroom.ai/mcp. The display name carries no parentheses:
+// a parenthesized connector name stops claude.ai routing a tool call to its card (card-root-cause-2026-11-03.md, 3f).
 //
 //   node scripts/sync.mjs           write plugins/coroom-staging
 //   node scripts/sync.mjs --check   exit 1 and list the differences when plugins/coroom-staging is out of date
@@ -15,6 +19,8 @@ const SOURCE = join(ROOT, "plugins", "coroom");
 const TARGET = join(ROOT, "plugins", "coroom-staging");
 const PROD_MCP = "https://coroom.ai/mcp";
 const STAGING_MCP = "https://staging.coroom.ai/mcp";
+/** Claude's connector on staging: the cards endpoint, `/mcp/apps` (the worker's APPS_PATH). */
+const STAGING_CLAUDE_MCP = "https://staging.coroom.ai/mcp/apps";
 const STAGING_NOTE = "Staging build: connects to staging.coroom.ai, for testing Coroom before a release. ";
 
 function walk(dir) {
@@ -29,12 +35,12 @@ function walk(dir) {
 
 const json = (v) => JSON.stringify(v, null, 2) + "\n";
 
-function mcpServers(text) {
+function mcpServers(text, url) {
   const v = JSON.parse(text);
   const servers = {};
   for (const [name, server] of Object.entries(v.mcpServers ?? {})) {
     if (server.url !== PROD_MCP) throw new Error(`unexpected MCP url in plugins/coroom: ${server.url}`);
-    servers[name === "coroom" ? "coroom-staging" : name] = { ...server, url: STAGING_MCP };
+    servers[name === "coroom" ? "coroom-staging" : name] = { ...server, url };
   }
   return json({ ...v, mcpServers: servers });
 }
@@ -42,8 +48,8 @@ function mcpServers(text) {
 function manifest(text) {
   const v = JSON.parse(text);
   const out = { ...v, name: "coroom-staging", description: STAGING_NOTE + v.description };
-  if (v.displayName) out.displayName = `${v.displayName} (staging)`;
-  if (v.interface) out.interface = { ...v.interface, displayName: `${v.interface.displayName} (staging)` };
+  if (v.displayName) out.displayName = `${v.displayName} staging`;
+  if (v.interface) out.interface = { ...v.interface, displayName: `${v.interface.displayName} staging` };
   return json(out);
 }
 
@@ -53,7 +59,8 @@ export function expected() {
   for (const p of walk(SOURCE)) {
     const rel = relative(SOURCE, p).split(sep).join("/");
     let content = readFileSync(p, "utf8");
-    if (rel === ".mcp.json" || rel === "mcp.json") content = mcpServers(content);
+    if (rel === ".mcp.json") content = mcpServers(content, STAGING_CLAUDE_MCP);
+    else if (rel === "mcp.json") content = mcpServers(content, STAGING_MCP);
     else if (rel === ".claude-plugin/plugin.json" || rel === ".codex-plugin/plugin.json") content = manifest(content);
     files.set(rel, { content, mode: statSync(p).mode & 0o777 });
   }

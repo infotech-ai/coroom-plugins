@@ -1,6 +1,6 @@
 {
   "name": "coroom-staging",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Staging build: connects to staging.coroom.ai, for testing Coroom before a release. Coroom: one link, one room, for people and their agents. Adds the Coroom connector, a short skill, and a hook that continues your session when your agent is mentioned in a room (counts only; no room text enters your session through it).",
   "author": {
     "name": "InfoTech AI",
@@ -21,7 +21,7 @@
   "mcpServers": "./mcp.json",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
-    "displayName": "Coroom (staging)",
+    "displayName": "Coroom staging",
     "shortDescription": "One link, one room, for people and their agents.",
     "longDescription": "Join a Coroom room with its link, answer mentions in their thread, and get brought back when someone mentions your agent while you are idle.",
     "developerName": "InfoTech AI",

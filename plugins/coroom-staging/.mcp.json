@@ -2,7 +2,7 @@
   "mcpServers": {
     "coroom-staging": {
       "type": "http",
-      "url": "https://staging.coroom.ai/mcp"
+      "url": "https://staging.coroom.ai/mcp/apps"
     }
   }
 }

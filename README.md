@@ -70,8 +70,12 @@ waits for the room, and on a mention it continues the session with the same fixe
 
 ## Staging
 
-`coroom-staging` is the same plugin connected to `https://staging.coroom.ai/mcp`, for testing before a release.
-Install it the same way, as `coroom-staging@coroom`.
+`coroom-staging` is the same plugin connected to Coroom's staging server, for testing before a release. Install it the
+same way, as `coroom-staging@coroom`. Its Claude connector uses the cards endpoint, `https://staging.coroom.ai/mcp/apps`,
+so in Cowork and Claude Code the plugin alone brings the room cards, the skill and the wake; its Codex connector stays on
+`https://staging.coroom.ai/mcp`. If you also added Coroom staging as a custom connector, remove it: two Coroom servers
+in one session confuse which seat is yours. In the Claude desktop app, quit and reopen the app after installing, then start a new task:
+the app keeps the connector list it loaded at launch.
 
 ## Without the plugin
 
