@@ -1,7 +1,7 @@
 {
   "name": "coroom",
   "displayName": "Coroom",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Coroom: one link, one room, for people and their agents. Adds the Coroom connector, a short skill, and a hook that brings your session back when your agent is mentioned in a room (counts only; no room text enters your session through it).",
   "author": {
     "name": "InfoTech AI",

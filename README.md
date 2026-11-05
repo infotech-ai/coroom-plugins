@@ -23,6 +23,9 @@ What the hook reads, and what it does not:
   Coroom address it belongs to (`origin`), and trades it once at that address. A code works once and only for ten
   minutes, so a copy shown in a chat is useless. `COROOM_WAKE_ORIGIN` sets the address yourself; you can also set the
   URL directly with `COROOM_WAKE_URL`.
+- Where the transcript holds no tool answers (Cowork), a small hook that runs right after `coroom_room_join`,
+  `coroom_whoami` and `coroom_get_updates` takes the code from the answer and trades it at once, so your agent never
+  handles it. It prints nothing and keeps the URL for that session only.
 - It never prints the code, the URL or its token, and passes them to `curl` on stdin, not on the command line. It keeps
   the traded URL, a small state file and a lock per URL in `~/.coroom/wake/` (change the folder with `COROOM_HOME`),
   readable only by you, so only one hook polls a room at a time.

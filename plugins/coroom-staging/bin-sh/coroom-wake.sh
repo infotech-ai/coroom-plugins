@@ -12,6 +12,14 @@
 #
 #   sh coroom-wake.sh --host claude   async rewake hook: prints the sentence on stderr, exits 2
 #   sh coroom-wake.sh --host codex    blocking Stop hook: prints {"decision":"block","reason":...}, exits 0
+#   sh coroom-wake.sh --save          PostToolUse hook (W2): trades the wake code in the tool's answer at once and keeps
+#                                     the URL for this session; prints nothing, polls nothing, exits 0
+#
+# W2 (2026-11-05): Cowork's transcript holds no tool results (CL-7), but a plugin PostToolUse hook gets the answer in its
+# input (CL-21). So --save takes the code and origin from the structured `wake` object in tool_response (never from
+# tool_input or from inside a string), trades it, and keeps the URL in
+# <dir>/<hash>.url and in <dir>/s-<hash16(session_id)>.url. The Stop hook uses that session's URL when the transcript
+# has no code or URL. The agent never handles the code, and the code is spent within a second of the answer.
 #
 # The wake URL is `<origin>/api/v1/wake/<room>/<route>#<token>`: the token rides in the fragment, which is never sent;
 # this script strips it and sends it as `Authorization: Bearer`, passed to curl on stdin so it is never in a request
@@ -42,7 +50,9 @@ NL='
 
 host=claude
 seen=0
+save=0
 while [ $# -gt 0 ]; do
+  if [ "$1" = --save ]; then save=1; fi
   if [ "$seen" = 0 ]; then
     case $1 in
       --host)
@@ -115,6 +125,11 @@ transcript_path() {
     sed -e 's/\\\//\//g' -e 's/\\"/"/g' -e 's/\\\\/\\/g'
 }
 
+session_id() {
+  printf '%s' "$input" | tr -d '\r\n' |
+    sed -n -E 's/.*"session_id"[[:space:]]*:[[:space:]]*"([A-Za-z0-9._-]{1,128})".*/\1/p'
+}
+
 env_url=$(trim "${COROOM_WAKE_URL-}")
 env_origin=$(trim "${COROOM_WAKE_ORIGIN-}")
 env_origin=${env_origin%/}
@@ -125,17 +140,47 @@ fi
 url=
 code=
 origin=
-if [ -n "$env_url" ]; then
+sid=$(session_id)
+from_session=0
+coroom_home=${COROOM_HOME-}
+if [ -z "$coroom_home" ]; then
+  [ -n "${HOME-}" ] || exit 0
+  coroom_home=$HOME/.coroom
+fi
+dir=$coroom_home/wake
+
+if [ "$save" = 1 ]; then
+  # Only a code from the tool's answer, never a URL; COROOM_WAKE_URL makes saving pointless.
+  [ -z "$env_url" ] || exit 0
+  # Only the structured wake object in tool_response: never tool_input, and never a pair inside a JSON string (room text
+  # or an argument), whose quotes come escaped. The text kept runs from the last unescaped "tool_response" key to a
+  # "tool_input" key, whichever order the host writes them in.
+  if [ -n "$env_origin" ]; then
+    find_re=$CODE_RE
+    wake_obj_re="\"wake\"[[:space:]]*:[[:space:]]*\\{[[:space:]]*\"code\"[[:space:]]*:[[:space:]]*\"$CODE_RE\""
+  else
+    find_re=$PAIR_RE
+    wake_obj_re="\"wake\"[[:space:]]*:[[:space:]]*\\{[[:space:]]*\"code\"[[:space:]]*:[[:space:]]*\"$CODE_RE\"[[:space:]]*,[[:space:]]*\"origin\"[[:space:]]*:[[:space:]]*\"$ORIGIN_RE"
+  fi
+  src_cmd() {
+    printf '%s' "$input" | tr -d '\r\n' | sed -n -E 's/.*"tool_response"[[:space:]]*://p' | sed -E 's/"tool_input"[[:space:]]*:.*//' |
+      LC_ALL=C grep -Eo "$wake_obj_re" | sed -E 's/^"wake"[[:space:]]*:[[:space:]]*[{][[:space:]]*"//'
+  }
+elif [ -n "$env_url" ]; then
   case $env_url in *"$NL"*) exit 0 ;; esac
   printf '%s\n' "$env_url" | grep -Eqx "$URL_RE" || exit 0
   url=$env_url
 else
   tp=$(transcript_path)
-  if [ -z "$tp" ] || [ ! -f "$tp" ] || [ ! -r "$tp" ]; then exit 0; fi
   if [ -n "$env_origin" ]; then find_re="$URL_RE|$CODE_RE"; else find_re="$URL_RE|$PAIR_RE"; fi
+  src_cmd() {
+    if [ -n "$tp" ] && [ -f "$tp" ] && [ -r "$tp" ]; then tail -c "$TRANSCRIPT_TAIL" "$tp"; fi
+  }
+fi
+if [ -z "$url" ]; then
   # The last trusted URL or code, whichever came later; each line names its kind.
   last=$(
-    tail -c "$TRANSCRIPT_TAIL" "$tp" | tr -d '\000' | LC_ALL=C grep -Eo "$find_re" |
+    src_cmd | tr -d '\000' | LC_ALL=C grep -Eo "$find_re" |
       while IFS= read -r _m; do
         if printf '%s\n' "$_m" | grep -Eqx "$URL_RE"; then
           if host_allowed "$_m"; then printf 'url %s\n' "$_m"; fi
@@ -156,16 +201,22 @@ else
       _rest=${last#code }
       code=${_rest%% *}
       origin=${_rest#* } ;;
-    *) exit 0 ;;
+    *)
+      # Nothing in the transcript: the URL a PostToolUse --save kept for this session (W2), if it is still trusted.
+      [ "$save" = 0 ] && [ -n "$sid" ] || exit 0
+      _sf=$dir/s-$(hash16 "$sid").url
+      [ -f "$_sf" ] || exit 0
+      _k=$(tr -d '\r\n' <"$_sf")
+      printf '%s\n' "$_k" | grep -Eqx "$URL_RE" || exit 0
+      host_allowed "$_k" || exit 0
+      if [ -n "$env_origin" ]; then
+        case $_k in "$env_origin/api/v1/wake/"*) ;; *) exit 0 ;; esac
+      fi
+      url=$_k
+      from_session=1 ;;
   esac
 fi
 
-coroom_home=${COROOM_HOME-}
-if [ -z "$coroom_home" ]; then
-  [ -n "${HOME-}" ] || exit 0
-  coroom_home=$HOME/.coroom
-fi
-dir=$coroom_home/wake
 mkdir -p "$dir" || exit 0
 
 # A code is traded once for the URL (POST <origin>/api/v1/wake/exchange, the code in the body from stdin, never an
@@ -193,6 +244,12 @@ if [ -z "$url" ]; then
     url=$_xu
     printf '%s\n' "$url" >"$keep"
   fi
+fi
+
+if [ "$save" = 1 ]; then
+  # Keep the URL for this session's Stop hook; never printed.
+  if [ -n "$sid" ]; then printf '%s\n' "$url" >"$dir/s-$(hash16 "$sid").url"; fi
+  exit 0
 fi
 
 base=${url%%#*}
@@ -375,7 +432,10 @@ while :; do
   if [ "$s" -gt 0 ]; then nap "$s"; fi
 done
 
-if [ "$clear" = 1 ]; then rm -f "$state"; fi
+if [ "$clear" = 1 ]; then
+  rm -f "$state"
+  if [ "$from_session" = 1 ]; then rm -f "$dir/s-$(hash16 "$sid").url"; fi
+fi
 [ "$result" = wake ] || exit 0
 
 count=$(json_int count)
