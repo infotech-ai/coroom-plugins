@@ -18,12 +18,16 @@ if [ ! -s "$tag_file" ]; then od -An -N4 -tx4 /dev/urandom | tr -d ' \n' >"$tag_
 tag=$(cat "$tag_file")
 size=-1
 wake=0
+probe=0
 if [ -n "$tp" ] && [ -f "$tp" ]; then
   size=$(wc -c <"$tp" | tr -d ' ')
   wake=$(grep -c 'api/v1/wake/' "$tp")
+  # CL-18: the agent's own shell calls of the probe script, counted only inside tool_use entries (the user's prompt
+  # names the script too, as plain text).
+  probe=$(grep -o '"type":"tool_use"[^}]*coroom-diag-probe' "$tp" | wc -l | tr -d ' ')
 fi
-printf '%s %s tag=%s home=%s pwd=%s tp=%s tp_size=%s wake_lines=%s pid=%s\n' \
-  "$(date -u +%H:%M:%S)" "$mode" "$tag" "${HOME-}" "$PWD" "${tp:-none}" "$size" "$wake" "$$" >>"$log"
+printf '%s %s tag=%s home=%s pwd=%s tp=%s tp_size=%s wake_lines=%s probe_calls=%s pid=%s\n' \
+  "$(date -u +%H:%M:%S)" "$mode" "$tag" "${HOME-}" "$PWD" "${tp:-none}" "$size" "$wake" "$probe" "$$" >>"$log"
 beacon() { command -v curl >/dev/null && curl -q -s -o /dev/null --max-time 10 "https://staging.coroom.ai/api/v1/wake/diag/$tag-$1"; }
 case $mode in
   session-start | prompt)

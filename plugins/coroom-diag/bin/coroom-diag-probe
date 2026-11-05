@@ -1,0 +1,10 @@
+#!/bin/sh
+# Coroom diagnostic, test only (2026-11-05, probe CL-18): shows whether an agent's own shell can run a plugin's script
+# by name (a plugin bin/ on PATH) or through $CLAUDE_PLUGIN_ROOT. Prints one line and logs it; sends nothing anywhere.
+# The arguments are not printed or logged, only how many there were.
+set -u
+dir=${HOME:-/tmp}/.coroom
+mkdir -p "$dir" 2>/dev/null
+line="coroom-diag-probe ran: as=$0 args=$# plugin_root=${CLAUDE_PLUGIN_ROOT:-unset} home=${HOME:-unset} uid=$(id -u 2>/dev/null)"
+printf '%s %s\n' "$(date -u +%H:%M:%S)" "$line" >>"$dir/diag.log" 2>/dev/null
+printf '%s\n' "$line"
