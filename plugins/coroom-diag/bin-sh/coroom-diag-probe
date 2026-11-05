@@ -1,6 +1,7 @@
 #!/bin/sh
 # Coroom diagnostic, test only (2026-11-05, probe CL-18): shows whether an agent's own shell can run a plugin's script
-# by name (a plugin bin/ on PATH) or through $CLAUDE_PLUGIN_ROOT. Prints one line and logs it; sends nothing anywhere.
+# through $CLAUDE_PLUGIN_ROOT/bin-sh or by full path (claude.ai rejects a plugin with a top-level bin/, 2026-11-05).
+# Prints one line and logs it; sends nothing anywhere.
 # The arguments are not printed or logged, only how many there were.
 set -u
 dir=${HOME:-/tmp}/.coroom

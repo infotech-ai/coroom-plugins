@@ -2,6 +2,7 @@
   "hooks": {
     "SessionStart": [{ "hooks": [{ "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin-sh/diag.sh\" session-start", "timeout": 30 }] }],
     "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin-sh/diag.sh\" prompt", "timeout": 30 }] }],
+    "PostToolUse": [{ "matcher": "mcp__.*coroom.*", "hooks": [{ "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin-sh/diag.sh\" post-tool", "timeout": 10 }] }],
     "Stop": [{ "hooks": [{ "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin-sh/diag.sh\" stop", "async": true, "timeout": 700 }] }]
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "coroom-diag",
   "displayName": "Coroom diagnostics (test only)",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Test only: reports how a host runs plugin hooks (where, for how long, and whether the transcript holds a Coroom wake URL). Sends no room data. Remove after testing.",
   "author": { "name": "InfoTech AI", "url": "https://coroom.ai" },
   "homepage": "https://coroom.ai",

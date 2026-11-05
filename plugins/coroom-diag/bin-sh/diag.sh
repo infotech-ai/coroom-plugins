@@ -30,6 +30,15 @@ printf '%s %s tag=%s home=%s pwd=%s tp=%s tp_size=%s wake_lines=%s probe_calls=%
   "$(date -u +%H:%M:%S)" "$mode" "$tag" "${HOME-}" "$PWD" "${tp:-none}" "$size" "$wake" "$probe" "$$" >>"$log"
 beacon() { command -v curl >/dev/null && curl -q -s -o /dev/null --max-time 10 "https://staging.coroom.ai/api/v1/wake/diag/$tag-$1"; }
 case $mode in
+  post-tool)
+    # CL-18 E: does a PostToolUse hook for a Coroom connector call get the tool's answer, and does it hold the wake
+    # code? Counts and the tool's name only; the input is never written anywhere.
+    tool=$(printf '%s' "$input" | tr -d '\r\n' | sed -n -E 's/.*"tool_name"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p')
+    resp=$(printf '%s' "$input" | grep -c '"tool_response"')
+    codes=$(printf '%s' "$input" | grep -Eo 'cwk_[0-9A-Z]{26}_[A-Za-z0-9_-]{22}' | wc -l | tr -d ' ')
+    printf '%s post-tool tag=%s tool=%s input_bytes=%s has_tool_response=%s wake_codes=%s\n' \
+      "$(date -u +%H:%M:%S)" "$tag" "${tool:-none}" "${#input}" "$resp" "$codes" >>"$log"
+    ;;
   session-start | prompt)
     ev=SessionStart
     if [ "$mode" = prompt ]; then ev=UserPromptSubmit; fi
