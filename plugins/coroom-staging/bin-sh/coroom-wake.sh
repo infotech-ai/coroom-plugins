@@ -1,9 +1,14 @@
 #!/bin/sh
 # Coroom wake hook for Claude Code and Codex. POSIX sh and curl, nothing else to install.
 #
-# Runs as a Stop hook. It finds the agent's wake URL (env COROOM_WAKE_URL, else the last one in the session
-# transcript), long-polls it, and when the room has new events for this agent it brings the session back with a
-# fixed sentence. The wake URL returns counts only, so no room text ever passes through this script.
+# Runs as a Stop hook. It finds the agent's wake URL (env COROOM_WAKE_URL; else the last wake code or URL in the session
+# transcript, a code being traded once for the URL and kept under ~/.coroom/wake), long-polls it, and when the room has
+# new events for this agent it brings the session back with a fixed sentence. The wake URL returns counts only, so no
+# room text ever passes through this script.
+#
+# Since W1 (2026-11-05) agents see `wake: {code: "cwk_<room>_<secret>", origin, ...}`, never the URL: the code works once,
+# for ten minutes, at `<origin>/api/v1/wake/exchange`. The origin comes from COROOM_WAKE_ORIGIN, else the `origin` next
+# to the code, else the code is skipped, so a staging code is never sent to production or the reverse.
 #
 #   sh coroom-wake.sh --host claude   async rewake hook: prints the sentence on stderr, exits 2
 #   sh coroom-wake.sh --host codex    blocking Stop hook: prints {"decision":"block","reason":...}, exits 0
@@ -27,6 +32,11 @@ TRANSCRIPT_TAIL=8388608
 # The Claude hook timeout is 3900 s; the cap stays under it with room for the last poll to end.
 MAX_IDLE_MIN=63
 URL_RE='(https://[A-Za-z0-9.:-]+|http://(localhost|127\.0\.0\.1)(:[0-9]+)?)/api/v1/wake/[A-Za-z0-9]+/[A-Za-z0-9_-]+#[A-Za-z0-9_-]+'
+ORIGIN_RE='(https://[A-Za-z0-9.:-]+|http://(localhost|127\.0\.0\.1)(:[0-9]+)?)'
+CODE_RE='cwk_[0-9A-HJKMNP-TV-Z]{26}_[A-Za-z0-9_-]{22}'
+# A code with the origin the server put next to it, in plain or escaped JSON (a transcript stores tool output as a JSON
+# string, so quotes may come with backslashes).
+PAIR_RE="code\\\\*\"[[:space:]]*:[[:space:]]*\\\\*\"$CODE_RE\\\\*\"[[:space:]]*,[[:space:]]*\\\\*\"origin\\\\*\"[[:space:]]*:[[:space:]]*\\\\*\"$ORIGIN_RE"
 NL='
 '
 
@@ -106,6 +116,15 @@ transcript_path() {
 }
 
 env_url=$(trim "${COROOM_WAKE_URL-}")
+env_origin=$(trim "${COROOM_WAKE_ORIGIN-}")
+env_origin=${env_origin%/}
+if [ -n "$env_origin" ]; then
+  case $env_origin in *"$NL"*) exit 0 ;; esac
+  printf '%s\n' "$env_origin" | grep -Eqx "$ORIGIN_RE" || exit 0
+fi
+url=
+code=
+origin=
 if [ -n "$env_url" ]; then
   case $env_url in *"$NL"*) exit 0 ;; esac
   printf '%s\n' "$env_url" | grep -Eqx "$URL_RE" || exit 0
@@ -113,19 +132,33 @@ if [ -n "$env_url" ]; then
 else
   tp=$(transcript_path)
   if [ -z "$tp" ] || [ ! -f "$tp" ] || [ ! -r "$tp" ]; then exit 0; fi
-  url=$(
-    tail -c "$TRANSCRIPT_TAIL" "$tp" | tr -d '\000' | LC_ALL=C grep -Eo "$URL_RE" |
-      while IFS= read -r _u; do
-        if host_allowed "$_u"; then printf '%s\n' "$_u"; fi
+  if [ -n "$env_origin" ]; then find_re="$URL_RE|$CODE_RE"; else find_re="$URL_RE|$PAIR_RE"; fi
+  # The last trusted URL or code, whichever came later; each line names its kind.
+  last=$(
+    tail -c "$TRANSCRIPT_TAIL" "$tp" | tr -d '\000' | LC_ALL=C grep -Eo "$find_re" |
+      while IFS= read -r _m; do
+        if printf '%s\n' "$_m" | grep -Eqx "$URL_RE"; then
+          if host_allowed "$_m"; then printf 'url %s\n' "$_m"; fi
+        elif [ -n "$env_origin" ]; then
+          printf 'code %s %s\n' "$_m" "$env_origin"
+        else
+          _c=$(printf '%s\n' "$_m" | grep -Eo "$CODE_RE" | head -n 1)
+          _o=$(printf '%s\n' "$_m" | sed -E 's/.*origin[\\]*"[[:space:]]*:[[:space:]]*[\\]*"//')
+          if [ -n "$_c" ] && printf '%s\n' "$_o" | grep -Eqx "$ORIGIN_RE" && host_allowed "$_o/"; then
+            printf 'code %s %s\n' "$_c" "$_o"
+          fi
+        fi
       done | tail -n 1
   )
-  [ -n "$url" ] || exit 0
+  case $last in
+    'url '*) url=${last#url } ;;
+    'code '*)
+      _rest=${last#code }
+      code=${_rest%% *}
+      origin=${_rest#* } ;;
+    *) exit 0 ;;
+  esac
 fi
-
-base=${url%%#*}
-token=${url#*#}
-room=${base#*/api/v1/wake/}
-room=${room%%/*}
 
 coroom_home=${COROOM_HOME-}
 if [ -z "$coroom_home" ]; then
@@ -134,6 +167,39 @@ if [ -z "$coroom_home" ]; then
 fi
 dir=$coroom_home/wake
 mkdir -p "$dir" || exit 0
+
+# A code is traded once for the URL (POST <origin>/api/v1/wake/exchange, the code in the body from stdin, never an
+# argument), and the URL is kept in <dir>/<hash>.url (umask 077) for the next turn. The answer must be a wake URL on
+# the same origin.
+if [ -z "$url" ]; then
+  keep=$dir/$(hash16 "$code").url
+  if [ -f "$keep" ]; then
+    _k=$(tr -d '\r\n' <"$keep")
+    if printf '%s\n' "$_k" | grep -Eqx "$URL_RE"; then
+      case $_k in "$origin/api/v1/wake/"*) url=$_k ;; esac
+    fi
+  fi
+  if [ -z "$url" ]; then
+    _xb=$dir/x.$$.body
+    _xc=$(printf 'data = "{\\"code\\":\\"%s\\"}"\nheader = "Content-Type: application/json"\n' "$code" |
+      curl -q -s -K - --max-time "$FETCH_TIMEOUT_S" -H 'Accept: application/json' -o "$_xb" -w '%{http_code}' "$origin/api/v1/wake/exchange")
+    _xu=
+    if [ "$_xc" = 200 ]; then
+      _xu=$(tr -d '\r\n' <"$_xb" | sed -n -E 's/.*"url"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p')
+    fi
+    rm -f "$_xb"
+    printf '%s\n' "$_xu" | grep -Eqx "$URL_RE" || exit 0
+    case $_xu in "$origin/api/v1/wake/"*) ;; *) exit 0 ;; esac
+    url=$_xu
+    printf '%s\n' "$url" >"$keep"
+  fi
+fi
+
+base=${url%%#*}
+token=${url#*#}
+room=${base#*/api/v1/wake/}
+room=${room%%/*}
+
 key=$(hash16 "$url")
 [ -n "$key" ] || exit 0
 state=$dir/$key.json
