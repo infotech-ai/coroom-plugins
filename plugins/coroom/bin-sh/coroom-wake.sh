@@ -152,19 +152,31 @@ dir=$coroom_home/wake
 if [ "$save" = 1 ]; then
   # Only a code from the tool's answer, never a URL; COROOM_WAKE_URL makes saving pointless.
   [ -z "$env_url" ] || exit 0
-  # Only the structured wake object in tool_response: never tool_input, and never a pair inside a JSON string (room text
-  # or an argument), whose quotes come escaped. The text kept runs from the last unescaped "tool_response" key to a
-  # "tool_input" key, whichever order the host writes them in.
+  # Only the server's wake object in tool_response: never tool_input, never a pair inside room text or an argument.
+  # The escape level comes from the answer's shape, never from the text (0.2.8, after W2): an object answer holds the
+  # wake at level 0, where room text sits at level 1; a list or string answer (the content list, whose text is the
+  # answer's JSON) holds it at level 1, where room text sits at level 2 (three backslashes before each quote). The text
+  # kept runs from the last unescaped "tool_response" key to a "tool_input" key, whichever order the host writes them.
+  q0='"'
+  q1='\\"'
+  w0="${q0}wake${q0}[[:space:]]*:[[:space:]]*[{][[:space:]]*${q0}code${q0}[[:space:]]*:[[:space:]]*${q0}$CODE_RE${q0}"
+  w1="(^|[^\\])${q1}wake${q1}[[:space:]]*:[[:space:]]*[{][[:space:]]*${q1}code${q1}[[:space:]]*:[[:space:]]*${q1}$CODE_RE${q1}"
   if [ -n "$env_origin" ]; then
     find_re=$CODE_RE
-    wake_obj_re="\"wake\"[[:space:]]*:[[:space:]]*\\{[[:space:]]*\"code\"[[:space:]]*:[[:space:]]*\"$CODE_RE\""
   else
     find_re=$PAIR_RE
-    wake_obj_re="\"wake\"[[:space:]]*:[[:space:]]*\\{[[:space:]]*\"code\"[[:space:]]*:[[:space:]]*\"$CODE_RE\"[[:space:]]*,[[:space:]]*\"origin\"[[:space:]]*:[[:space:]]*\"$ORIGIN_RE"
+    w0="${w0}[[:space:]]*,[[:space:]]*${q0}origin${q0}[[:space:]]*:[[:space:]]*${q0}$ORIGIN_RE"
+    w1="${w1}[[:space:]]*,[[:space:]]*${q1}origin${q1}[[:space:]]*:[[:space:]]*${q1}$ORIGIN_RE"
   fi
   src_cmd() {
-    printf '%s' "$input" | tr -d '\r\n' | sed -n -E 's/.*"tool_response"[[:space:]]*://p' | sed -E 's/"tool_input"[[:space:]]*:.*//' |
-      LC_ALL=C grep -Eo "$wake_obj_re" | sed -E 's/^"wake"[[:space:]]*:[[:space:]]*[{][[:space:]]*"//'
+    _tr=$(printf '%s' "$input" | tr -d '\r\n' | sed -n -E 's/.*"tool_response"[[:space:]]*://p' | sed -E 's/"tool_input"[[:space:]]*:.*//')
+    _tr=${_tr#"${_tr%%[![:space:]]*}"}
+    case $_tr in
+      '{'*) _wre=$w0 ;;
+      '['* | '"'*) _wre=$w1 ;;
+      *) return 0 ;;
+    esac
+    printf '%s' "$_tr" | LC_ALL=C grep -Eo "$_wre" | sed -E 's/^.*wake[\\]*"[[:space:]]*:[[:space:]]*[{][[:space:]]*[\\]*"//'
   }
 elif [ -n "$env_url" ]; then
   case $env_url in *"$NL"*) exit 0 ;; esac
